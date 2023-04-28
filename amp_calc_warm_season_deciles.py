@@ -38,6 +38,9 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
+file_var = 'tasmax'
+ds_var = 'mx2t'
+
 year = int(sys.argv[1])
 
 dirAgData = '/home/edcoffel/drive/MAX-Filer/Research/Climate-01/Personal-F20/edcoffel-F20/data/projects/ag-land-climate'
@@ -48,44 +51,27 @@ dirHeatData = '/home/edcoffel/drive/MAX-Filer/Research/Climate-01/Personal-F20/e
 dirAg6 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-01/Personal-F20/edcoffel-F20/research/2020-ag-cmip6'
 
 
-# Open and concatenate datasets using Dask
-era5_tasmax = xr.open_dataset('%s/daily/tasmax_%d.nc'%(dirEra5, year))
-era5_tasmax.load()
-era5_tasmax['mx2t'] -= 273.15
-era5_tasmax = era5_tasmax.rename({'latitude':'lat', 'longitude':'lon'})
+# Load the DataArray containing the months of annual maximum temperature
+annual_max_months_da = xr.open_dataarray("txx_months_1981_2021.nc")
 
-era5_sm = xr.open_dataset('%s/daily/sm_%d.nc'%(dirEra5Land, year))
-era5_sm.load()
-era5_sm = era5_sm.rename({'latitude':'lat', 'longitude':'lon'})
+# Load the temperature dataset for the specified year
+file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
+ds = xr.open_dataset(file_path)
+ds['mx2t'] -= 273.15
 
-target_grid = xr.Dataset({
-    'lat': era5_tasmax['lat'],
-    'lon': era5_tasmax['lon']
-})
+# Find the months when the annual max temperature has historically occurred for each grid cell
+months_of_interest = annual_max_months_da.sel(year=year)
 
-# Create a regridder object using the source and target grids
-regridder = xe.Regridder(era5_sm.swvl1, target_grid, 'bilinear', reuse_weights=True)
+# Select the daily temperature data for those months
+ds_temperature_months_of_interest = ds[ds_var].where(
+    ds.time.dt.month.isin(months_of_interest), drop=True
+)
 
-# Regrid the era5_soil_moisture DataArray
-era5_sm_regrid_data = regridder(era5_sm.swvl1)
+# Calculate the percentiles for each grid cell
+daily_temperature_percentiles = ds_temperature_months_of_interest.quantile(
+    np.linspace(0, 1, 101), dim="time"
+)
 
-# Clean up the regridder to delete the intermediate weight file
-regridder.clean_weight_file()
-
-
-# Find the hottest day for the current year
-hottest_day = era5_tasmax['mx2t'].idxmax(dim="time")
-
-# Extract the soil moisture data corresponding to the hottest day
-soil_moisture_on_hottest_day = era5_sm_regrid_data.sel(time=hottest_day)
-
-print('computing %d'%year)
-# Compute the result and convert it to a Dataset
-soil_moisture_on_hottest_day = soil_moisture_on_hottest_day.compute().to_dataset(name='sm_on_txx')
-
-# drop time dimension
-soil_moisture_on_hottest_day = soil_moisture_on_hottest_day.drop_vars('time')
-
-# Write the output to a netCDF file
-mode = "w"# if year == 1981 else "a"
-soil_moisture_on_hottest_day.to_netcdf('output/sm_on_txx/sm_on_txx_%d.nc'%year, mode=mode)
+# Save the results to a netcdf file
+output_file = f"deciles/tx/era5_{file_var}_deciles_warm_season_{year}.nc"
+daily_temperature_percentiles.to_netcdf(output_file)
