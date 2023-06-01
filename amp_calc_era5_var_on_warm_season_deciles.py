@@ -38,8 +38,8 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-ds_var = 'swvl1'
-file_var = 'sm'
+ds_var = 'q'
+file_var = 'huss'
 year = int(sys.argv[1])
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
@@ -52,10 +52,29 @@ annual_max_months_da = xr.open_dataarray("txx_months_1981_2021.nc")
 file_path = '%s/daily/tasmax_%d.nc'%(dirEra5, year)
 ds_temperature = xr.open_dataset(file_path)
 
+
 # Load the soil moisture dataset for the specified year
-era5_var_file_path = '%s/daily/sm_%d.nc'%(dirEra5Land, year)
+era5_var_file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
 ds_era5_var = xr.open_dataset(era5_var_file_path)
 
+
+# Check if the dimensions differ
+if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperature.latitude.size != ds_era5_var.latitude.size):
+
+    ds_temperature = ds_temperature.rename({'latitude':'lat', 'longitude':'lon'})
+    ds_era5_var = ds_era5_var.rename({'latitude':'lat', 'longitude':'lon'})
+    
+    # Define regridder
+    regridder = xe.Regridder(ds_era5_var, ds_temperature, 'bilinear', reuse_weights=True)
+
+    # Apply regridding
+    ds_era5_var = regridder(ds_era5_var)
+    
+    ds_temperature = ds_temperature.rename({'lat':'latitude', 'lon':'longitude'})
+    ds_era5_var = ds_era5_var.rename({'lat':'latitude', 'lon':'longitude'})
+
+
+    
 # Find the months when the annual max temperature has historically occurred for each grid cell
 months_of_interest = annual_max_months_da.sel(year=year)
 
@@ -94,5 +113,5 @@ era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
 )
 
 # Save the results to a netcdf file
-output_file = f"output/sm_on_txx/{file_var}_on_warm_season_tx_deciles_{year}.nc"
+output_file = f"output/{ds_var}_on_txx/{file_var}_on_warm_season_tx_deciles_{year}.nc"
 era5_var_bin_means_da.to_netcdf(output_file)
