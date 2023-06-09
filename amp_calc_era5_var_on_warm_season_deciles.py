@@ -38,8 +38,8 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-ds_var = 'q'
-file_var = 'huss'
+ds_var = 'swvl1'
+file_var = 'sm'
 year = int(sys.argv[1])
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
@@ -54,7 +54,7 @@ ds_temperature = xr.open_dataset(file_path)
 
 
 # Load the soil moisture dataset for the specified year
-era5_var_file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
+era5_var_file_path = '%s/daily/%s_%d.nc'%(dirEra5Land, file_var, year)
 ds_era5_var = xr.open_dataset(era5_var_file_path)
 
 
@@ -113,5 +113,5 @@ era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
 )
 
 # Save the results to a netcdf file
-output_file = f"output/{ds_var}_on_txx/{file_var}_on_warm_season_tx_deciles_{year}.nc"
+output_file = f"output/{file_var}_on_txx/{file_var}_on_warm_season_tx_deciles_{year}.nc"
 era5_var_bin_means_da.to_netcdf(output_file)
