@@ -38,6 +38,8 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
+decile_var = 'tw'
+
 ds_var = 'swvl1'
 file_var = 'sm'
 year = int(sys.argv[1])
@@ -46,10 +48,16 @@ dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F
 dirEra5Land = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5-Land'
 
 # Load the DataArray containing the months of annual maximum temperature
-annual_max_months_da = xr.open_dataarray("txx_months_1981_2021.nc")
+if decile_var == 'tx':
+    annual_max_months_da = xr.open_dataarray("txx_months_1981_2021.nc")
+elif decile_var == 'tw':
+    annual_max_months_da = xr.open_dataarray("tw_months_1981_2021.nc")
 
 # Load the temperature dataset for the specified year
-file_path = '%s/daily/tasmax_%d.nc'%(dirEra5, year)
+if decile_var == 'tx':
+    file_path = '%s/daily/tasmax_%d.nc'%(dirEra5, year)
+elif decile_var == 'tw':
+    file_path = '%s/daily/tw_max_%d.nc'%(dirEra5, year)
 ds_temperature = xr.open_dataset(file_path)
 
 
@@ -79,9 +87,14 @@ if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperat
 months_of_interest = annual_max_months_da.sel(year=year)
 
 # Select the daily temperature and soil moisture data for those months
-temperature_months_of_interest = ds_temperature.mx2t.where(
-    ds_temperature.time.dt.month.isin(months_of_interest), drop=True
-)
+if decile_var == 'tx':
+    temperature_months_of_interest = ds_temperature['mx2t'].where(
+        ds_temperature.time.dt.month.isin(months_of_interest), drop=True
+    )
+elif decile_var == 'tw':
+    temperature_months_of_interest = ds_temperature['tw'].where(
+        ds_temperature.time.dt.month.isin(months_of_interest), drop=True
+    )
 era5_var_months_of_interest = ds_era5_var[ds_var].where(
     ds_era5_var.time.dt.month.isin(months_of_interest), drop=True
 )
@@ -112,6 +125,10 @@ era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
     quantile=("quantile", np.arange(0, 1, .05))
 )
 
+
 # Save the results to a netcdf file
-output_file = f"output/{file_var}_on_txx/{file_var}_on_warm_season_tx_deciles_{year}.nc"
+if decile_var == 'tx':
+    output_file = f"output/{file_var}_on_tx/{file_var}_on_warm_season_tx_deciles_{year}.nc"
+elif decile_var == 'tw':
+    output_file = f"output/{file_var}_on_tw/{file_var}_on_warm_season_tw_deciles_{year}.nc"
 era5_var_bin_means_da.to_netcdf(output_file)
