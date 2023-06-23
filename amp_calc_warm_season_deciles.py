@@ -38,8 +38,8 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-file_var = 'tasmax'
-ds_var = 'mx2t'
+file_var = 'tw_max'
+ds_var = 'tw'
 
 year = int(sys.argv[1])
 
@@ -52,26 +52,45 @@ dirAg6 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-01/Personal-F20/edcoff
 
 
 # Load the DataArray containing the months of annual maximum temperature
-annual_max_months_da = xr.open_dataarray("txx_months_1981_2021.nc")
+annual_max_months_da = xr.open_dataarray("tw_months_1981_2021.nc")
 
 # Load the temperature dataset for the specified year
 file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
 ds = xr.open_dataset(file_path)
-ds['mx2t'] -= 273.15
+if ds_var == 'mx2t':
+    ds['mx2t'] -= 273.15
 
-# Find the months when the annual max temperature has historically occurred for each grid cell
-months_of_interest = annual_max_months_da.sel(year=year)
+# # Find the months when the annual max temperature has historically occurred for each grid cell
+# months_of_interest = annual_max_months_da.sel(year=year)
 
-# Select the daily temperature data for those months
-ds_temperature_months_of_interest = ds[ds_var].where(
-    ds.time.dt.month.isin(months_of_interest), drop=True
-)
+# # Select the daily temperature data for those months
+# ds_temperature_months_of_interest = ds[ds_var].where(
+#     ds.time.dt.month.isin(months_of_interest), drop=True
+# )
 
+# First create a boolean mask
+mask = xr.full_like(ds.time, False, dtype=bool)
+
+# Iterate over the years
+for y in annual_max_months_da.year:
+    # Find the month of max temperature in this year
+    month_of_max = annual_max_months_da.sel(year=y)
+    
+    # Set True in the mask for all days of this month in this year
+    mask = mask | (ds.time.dt.month == month_of_max)
+
+# Apply the mask to select temperature data for the months of interest
+if ds_var == 'mx2t':
+    temperature_months_of_interest = ds['mx2t'].where(mask, drop=True)
+elif ds_var == 'tw':
+    temperature_months_of_interest = ds['tw'].where(mask, drop=True)
+    
 # Calculate the percentiles for each grid cell
-daily_temperature_percentiles = ds_temperature_months_of_interest.quantile(
+daily_temperature_percentiles = temperature_months_of_interest.quantile(
     np.linspace(0, 1, 101), dim="time"
 )
 
+
 # Save the results to a netcdf file
-output_file = f"deciles/tx/era5_{file_var}_deciles_warm_season_{year}.nc"
+output_file = f"deciles/tw/era5_{file_var}_deciles_warm_season_{year}_new.nc"
 daily_temperature_percentiles.to_netcdf(output_file)

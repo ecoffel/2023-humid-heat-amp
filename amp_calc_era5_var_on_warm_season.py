@@ -38,10 +38,10 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-decile_var = 'tx'
+decile_var = 'tw'
 
-ds_var = 'z'
-file_var = 'gph500'
+ds_var = 'tp'
+file_var = 'tp'
 year = int(sys.argv[1])
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
@@ -82,27 +82,6 @@ if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperat
     ds_era5_var = ds_era5_var.rename({'lat':'latitude', 'lon':'longitude'})
 
 
-    
-# Find the months when the annual max temperature has historically occurred for each grid cell
-# months_of_interest = annual_max_months_da.sel(year=year)
-
-# # Select the daily temperature and soil moisture data for those months
-# if decile_var == 'tx':
-#     temperature_months_of_interest = ds_temperature['mx2t'].where(
-#         ds_temperature.time.dt.month.isin(months_of_interest), drop=True
-#     )
-# elif decile_var == 'tw':
-#     temperature_months_of_interest = ds_temperature['tw'].where(
-#         ds_temperature.time.dt.month.isin(months_of_interest), drop=True
-#     )
-# era5_var_months_of_interest = ds_era5_var[ds_var].where(
-#     ds_era5_var.time.dt.month.isin(months_of_interest), drop=True
-# )
-
-
-
-
-
 # First create a boolean mask
 mask = xr.full_like(ds_temperature.time, False, dtype=bool)
 
@@ -120,39 +99,12 @@ if decile_var == 'tx':
 elif decile_var == 'tw':
     temperature_months_of_interest = ds_temperature['tw'].where(mask, drop=True)
     
-era5_var_months_of_interest = ds_era5_var[ds_var].where(mask, drop=True)
+era5_var_months_of_interest = ds_era5_var[ds_var].where(mask, drop=True).sum(dim='time')
 
-
-
-# Calculate the temperature bins for each grid cell
-temperature_bins = temperature_months_of_interest.quantile(
-    np.linspace(0, 1, 21), dim="time"
-)
-
-# Calculate the average soil moisture value on days within warm season temperature bins
-era5_var_bin_means = []
-for i in range(20):
-    lower_bound = temperature_bins.isel(quantile=i)
-    upper_bound = temperature_bins.isel(quantile=i + 1)
-    era5_var_bin = era5_var_months_of_interest.where(
-        (temperature_months_of_interest >= lower_bound) &
-        (temperature_months_of_interest < upper_bound)
-    )
-    era5_var_bin_mean = era5_var_bin.mean(dim="time", skipna=True)
-    era5_var_bin_means.append(era5_var_bin_mean)
-
-era5_var_bin_means_da = xr.concat(
-    era5_var_bin_means, dim="quantile"
-)
-
-# Add the bins coordinate to the DataArray
-era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
-    quantile=("quantile", np.arange(0, 1, .05))
-)
 
 # Save the results to a netcdf file
 if decile_var == 'tx':
-    output_file = f"output/{file_var}_on_tx/{file_var}_on_warm_season_tx_deciles_{year}_new.nc"
+    output_file = f"output/{file_var}_on_tx/{file_var}_on_tx_warm_season_{year}.nc"
 elif decile_var == 'tw':
-    output_file = f"output/{file_var}_on_tw/{file_var}_on_warm_season_tw_deciles_{year}_new.nc"
-era5_var_bin_means_da.to_netcdf(output_file)
+    output_file = f"output/{file_var}_on_tw/{file_var}_on_tw_warm_season_{year}.nc"
+era5_var_months_of_interest.to_netcdf(output_file)
