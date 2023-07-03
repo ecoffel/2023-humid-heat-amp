@@ -38,7 +38,7 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-decile_var = 'tx'
+decile_var = 'tw'
 
 ds_var = 'z'
 file_var = 'gph500'
