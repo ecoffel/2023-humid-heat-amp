@@ -11,6 +11,6 @@ cmip6_models = ['access-cm2', 'awi-esm-1-1-lr', 'bcc-csm2-mr',
 for model in cmip6_models:
     
     print(f'running {model}')
-    os.system(f'ipython amp_calc_cmip6_tw_on_txx.py {model}')
+    os.system(f'ipython amp_calc_cmip6_tx_on_txx.py {model}')
 
     

@@ -40,8 +40,8 @@ warnings.filterwarnings('ignore')
 
 decile_var = 'tw'
 
-ds_var = 'z'
-file_var = 'gph500'
+ds_var = 'mx2t'
+file_var = 'tasmax'
 year = int(sys.argv[1])
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
@@ -64,6 +64,7 @@ ds_temperature = xr.open_dataset(file_path)
 # Load the soil moisture dataset for the specified year
 era5_var_file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
 ds_era5_var = xr.open_dataset(era5_var_file_path)
+ds_era5_var['mx2t']-=273.15
 
 
 # Check if the dimensions differ
@@ -71,6 +72,7 @@ if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperat
 
     ds_temperature = ds_temperature.rename({'latitude':'lat', 'longitude':'lon'})
     ds_era5_var = ds_era5_var.rename({'latitude':'lat', 'longitude':'lon'})
+    
     
     # Define regridder
     regridder = xe.Regridder(ds_era5_var, ds_temperature, 'bilinear', reuse_weights=True)
@@ -98,7 +100,6 @@ if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperat
 # era5_var_months_of_interest = ds_era5_var[ds_var].where(
 #     ds_era5_var.time.dt.month.isin(months_of_interest), drop=True
 # )
-
 
 
 
@@ -149,6 +150,9 @@ era5_var_bin_means_da = xr.concat(
 era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
     quantile=("quantile", np.arange(0, 1, .05))
 )
+
+
+
 
 # Save the results to a netcdf file
 if decile_var == 'tx':

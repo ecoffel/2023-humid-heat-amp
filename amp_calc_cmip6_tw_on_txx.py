@@ -47,8 +47,7 @@ cmip6_models = ['access-cm2', 'awi-esm-1-1-lr', 'bcc-csm2-mr',
 
 model = sys.argv[1]
 
-tw_on_tx = False
-output_ts = True
+tw_on_tx = True
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
 dirCMIP6 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/CMIP6'
@@ -116,57 +115,55 @@ for y in annual_max_months_da_tx_regrid.year:
     # Set True in the mask for all days of this month in this year
     mask = mask | (cmip6_tx.time.dt.month == month_of_max_tx) | (cmip6_tx.time.dt.month == month_of_max_tw)
 
-
 # Apply the mask to select temperature data for the months of interest
 cmip6_tx_regrid = cmip6_tx_regrid.where(mask, drop=True)
 cmip6_tw_regrid = cmip6_tw_regrid.where(mask, drop=True)
 
-# Calculate the temperature bins for each grid cell
-if tw_on_tx:
-    temperature_bins = cmip6_tx_regrid.quantile(
-        np.linspace(0, 1, 21), dim="time"
-    )
-else:
-    temperature_bins = cmip6_tw_regrid.quantile(
-        np.linspace(0, 1, 21), dim="time"
-    )
+# Initialize an empty list to store the tw values corresponding to the highest tx days for each year
+val_on_max_days = []
 
-# Calculate the average soil moisture value on days within warm season temperature bins
-temp_bin_means = []
-for i in range(20):
-    
-    lower_bound = temperature_bins.isel(quantile=i)
-    upper_bound = temperature_bins.isel(quantile=i + 1)
-    
+# For each year, find the day with the highest tx and then get the corresponding tw value
+for year in np.unique(cmip6_tx_regrid.time.dt.year.values):
+    print(year)
+    tx_yearly = cmip6_tx_regrid.sel(time=str(year))
+    tw_yearly = cmip6_tw_regrid.sel(time=str(year))
+
+    # Get the time index of the day with the maximum tx value
     if tw_on_tx:
-        temp_bin = cmip6_tw_regrid.where(
-            (cmip6_tx_regrid >= lower_bound) &
-            (cmip6_tx_regrid < upper_bound)
-        )
+        day_of_max = tx_yearly.idxmax(dim="time")
     else:
-        temp_bin = cmip6_tx_regrid.where(
-            (cmip6_tw_regrid >= lower_bound) &
-            (cmip6_tw_regrid < upper_bound)
-        )
-        
-    temp_bin_mean = temp_bin.mean(dim="time", skipna=True)
-    temp_bin_means.append(temp_bin_mean)
+        day_of_max = tw_yearly.idxmax(dim="time")
+    
+    # Get the tw value on that day
+    val_on_max_day = np.full([day_of_max.lat.size, day_of_max.lon.size], np.nan)
+    
+    for x in range(day_of_max.lat.size):
+        for y in range(day_of_max.lon.size):
+            if ~pd.isnull(day_of_max[x,y]):
+                if tw_on_tx:
+                    val_on_max_day[x,y] = tw_yearly[:,x,y].sel(time=day_of_max[x,y])
+                else:
+                    val_on_max_day[x,y] = tx_yearly[:,x,y].sel(time=day_of_max[x,y])
+    
+    # Convert the numpy array to a DataArray
+    val_on_max_day = xr.DataArray(
+        val_on_max_day,
+        coords=[tw_yearly.lat, tw_yearly.lon],
+        dims=["lat", "lon"]
+    )
+    
+    val_on_max_days.append(val_on_max_day)
 
-temp_bin_means_da = xr.concat(
-    temp_bin_means, dim="quantile"
-)
 
-# Add the bins coordinate to the DataArray
-temp_bin_means_da = temp_bin_means_da.assign_coords(
-    quantile=("quantile", np.arange(0, 1, .05))
-)
+# Combine the tw values into a single DataArray
+val_on_max_days_da = xr.concat(val_on_max_days, dim="time")
+
 
 # Save the results to a netcdf file
 # if decile_var == 'tx':
 if tw_on_tx:
-    output_file = f"output/cmip6/tw_on_tx_{model}.nc"
+    output_file = f"output/cmip6/tw_on_txx_{model}.nc"
 else:
-    output_file = f"output/cmip6/tx_on_tw_{model}.nc"
-# elif decile_var == 'tw':
-#     output_file = f"output/cmip6/tw_on_tx_{model}.nc"
-temp_bin_means_da.to_netcdf(output_file)
+    output_file = f"output/cmip6/tx_on_tww_{model}.nc"
+
+val_on_max_days_da.to_netcdf(output_file)
