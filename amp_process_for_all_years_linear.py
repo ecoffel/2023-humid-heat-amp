@@ -1,9 +1,9 @@
 
 import sys, os, time
 
-for y, year in enumerate(range(1981,2021+1)):
+for y, year in enumerate(range(26,30+1)):
     
     print('running %d'%year)
-    os.system('ipython amp_calc_era5_var_on_warm_season_deciles.py %d'%(year))
+    os.system('ipython amp_calc_lens_tx_tw_corr.py %d'%(year))
 
     
