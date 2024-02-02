@@ -69,11 +69,24 @@ annual_max_months_da_tx = annual_max_months_da_tx.rename({'latitude':'lat', 'lon
 
 
 print('opening %s'%model)
-cmip6_tw = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/tw/*.nc'%(dirCMIP6, model))
-cmip6_tx = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/tasmax/*day*.nc'%(dirCMIP6, model))
+cmip6_tw_hist = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/tw/*.nc'%(dirCMIP6, model))
+cmip6_tx_hist = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/tasmax/*day*.nc'%(dirCMIP6, model))
 
-cmip6_tx = cmip6_tx.sel(time=slice('1981', '2014'))
-cmip6_tw = cmip6_tw.sel(time=slice('1981', '2014'))
+cmip6_tx_hist = cmip6_tx_hist.sel(time=slice('1981', '2015'))
+
+cmip6_tw_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tw/*.nc'%(dirCMIP6, model))
+cmip6_tx_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tasmax/*day*.nc'%(dirCMIP6, model))
+
+cmip6_tx_fut = cmip6_tx_fut.sel(time=slice('2016', '2100'))
+
+cmip6_tw = xr.concat([cmip6_tw_hist, cmip6_tw_fut], dim='time')
+cmip6_tx = xr.concat([cmip6_tx_hist, cmip6_tx_fut], dim='time')
+
+
+# cmip6_tx = cmip6_tx.sel(time=slice('1981', '2050'))
+cmip6_tw = cmip6_tw.sel(time=slice('1981', '2100'))
+
+
 
 cmip6_tx = cmip6_tx['tasmax']-273.15
 cmip6_tx = cmip6_tx.reindex(lat=cmip6_tx.lat[::-1])
