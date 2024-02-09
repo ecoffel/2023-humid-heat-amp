@@ -76,7 +76,7 @@ cmip6_tx_hist = cmip6_tx_hist.sel(time=slice('1981', '2015'))
 cmip6_tw_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tw/*.nc'%(dirCMIP6, model))
 cmip6_tx_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tasmax/*day*.nc'%(dirCMIP6, model))
 
-cmip6_tx_fut = cmip6_tx_fut.sel(time=slice('2016', '2100'))
+cmip6_tx_fut = cmip6_tx_fut.sel(time=slice('2015', '2100'))
 
 cmip6_tw = xr.concat([cmip6_tw_hist, cmip6_tw_fut], dim='time')
 cmip6_tx = xr.concat([cmip6_tx_hist, cmip6_tx_fut], dim='time')
@@ -106,6 +106,8 @@ regridder = xe.Regridder(cmip6_tx, regridMesh_global, 'bilinear', reuse_weights=
 cmip6_tx_regrid = regridder(cmip6_tx)
 cmip6_tw_regrid = regridder(cmip6_tw)
 
+del cmip6_tx, cmip6_tw
+
 cmip6_tx_regrid = cmip6_tx_regrid.where(land_sea_mask_binary_regrid)
 cmip6_tw_regrid = cmip6_tw_regrid.where(land_sea_mask_binary_regrid)
 
@@ -118,7 +120,7 @@ annual_max_months_da_tw_regrid = regridder(annual_max_months_da_tw)
 
 print('creating warm season mask')
 # First create a boolean mask
-mask = xr.full_like(cmip6_tx.time, False, dtype=bool)
+mask = xr.full_like(cmip6_tx_regrid.time, False, dtype=bool)
 
 # Iterate over the years
 for y in annual_max_months_da_tx_regrid.year:
@@ -127,7 +129,7 @@ for y in annual_max_months_da_tx_regrid.year:
     month_of_max_tw = annual_max_months_da_tw_regrid .sel(year=y)
 
     # Set True in the mask for all days of this month in this year
-    mask = mask | (cmip6_tx.time.dt.month == month_of_max_tx) | (cmip6_tx.time.dt.month == month_of_max_tw)
+    mask = mask | (cmip6_tx_regrid.time.dt.month == month_of_max_tx) | (cmip6_tx_regrid.time.dt.month == month_of_max_tw)
 
 # Apply the mask to select temperature data for the months of interest
 cmip6_tx_regrid = cmip6_tx_regrid.where(mask, drop=True)
@@ -135,6 +137,9 @@ cmip6_tw_regrid = cmip6_tw_regrid.where(mask, drop=True)
 
 # Initialize an empty list to store the tw values corresponding to the highest tx days for each year
 val_on_max_days = []
+
+
+
 
 # For each year, find the day with the highest tx and then get the corresponding tw value
 for year in np.unique(cmip6_tx_regrid.time.dt.year.values):
@@ -169,6 +174,9 @@ for year in np.unique(cmip6_tx_regrid.time.dt.year.values):
     val_on_max_days.append(val_on_max_day)
 
 
+
+
+    
 # Combine the tw values into a single DataArray
 val_on_max_days_da = xr.concat(val_on_max_days, dim="time")
 
@@ -176,8 +184,8 @@ val_on_max_days_da = xr.concat(val_on_max_days, dim="time")
 # Save the results to a netcdf file
 # if decile_var == 'tx':
 if tw_on_tx:
-    output_file = f"output/cmip6/tw_on_txx_{model}.nc"
+    output_file = f"output/cmip6/tw_on_txx_1981_2100_ssp245_{model}.nc"
 else:
-    output_file = f"output/cmip6/tx_on_tww_{model}.nc"
+    output_file = f"output/cmip6/tx_on_tww_1981_2100_ssp245_{model}.nc"
 
 val_on_max_days_da.to_netcdf(output_file)

@@ -78,14 +78,14 @@ cmip6_tx_hist = cmip6_tx_hist.sel(time=slice('1981', '2015'))
 cmip6_tw_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tw/*.nc'%(dirCMIP6, model))
 cmip6_tx_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tasmax/*day*.nc'%(dirCMIP6, model))
 
-cmip6_tx_fut = cmip6_tx_fut.sel(time=slice('2016', '2100'))
+cmip6_tx_fut = cmip6_tx_fut.sel(time=slice('2015', '2100'))
 
 cmip6_tw = xr.concat([cmip6_tw_hist, cmip6_tw_fut], dim='time')
 cmip6_tx = xr.concat([cmip6_tx_hist, cmip6_tx_fut], dim='time')
 
 
 # cmip6_tx = cmip6_tx.sel(time=slice('1981', '2050'))
-cmip6_tw = cmip6_tw.sel(time=slice('1981', '2050'))
+cmip6_tw = cmip6_tw.sel(time=slice('1981', '2100'))
 
 
 cmip6_tx = cmip6_tx['tasmax']
@@ -104,6 +104,8 @@ regridder = xe.Regridder(cmip6_tx, regridMesh_global, 'bilinear', reuse_weights=
 cmip6_tx_regrid = regridder(cmip6_tx)
 cmip6_tw_regrid = regridder(cmip6_tw)
 
+del cmip6_tx, cmip6_tw
+
 cmip6_tx_regrid = cmip6_tx_regrid.where(land_sea_mask_binary_regrid)
 cmip6_tw_regrid = cmip6_tw_regrid.where(land_sea_mask_binary_regrid)
 
@@ -116,7 +118,7 @@ annual_max_months_da_tw_regrid = regridder(annual_max_months_da_tw)
 
 print('creating warm season mask')
 # First create a boolean mask
-mask = xr.full_like(cmip6_tx.time, False, dtype=bool)
+mask = xr.full_like(cmip6_tx_regrid.time, False, dtype=bool)
 
 # Iterate over the years
 for y in annual_max_months_da_tx_regrid.year:
@@ -136,7 +138,7 @@ print('calculating correlation...')
 correlation_per_year = []
 
 # Iterate over the years
-for y in range(1981, 2050 + 1):
+for y in range(1981, 2100 + 1):
     # Select data for this year
     cmip6_tx_year = cmip6_tx_regrid.sel(time=cmip6_tx_regrid.time.dt.year == y)
     cmip6_tw_year = cmip6_tw_regrid.sel(time=cmip6_tw_regrid.time.dt.year == y)
