@@ -38,10 +38,10 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-decile_var = 'tw'
+decile_var = 'tx'
 
-ds_var = 'mx2t'
-file_var = 'tasmax'
+ds_var = 'tw'
+file_var = 'tw_max'
 year = int(sys.argv[1])
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
@@ -64,7 +64,7 @@ ds_temperature = xr.open_dataset(file_path)
 # Load the soil moisture dataset for the specified year
 era5_var_file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
 ds_era5_var = xr.open_dataset(era5_var_file_path)
-ds_era5_var['mx2t']-=273.15
+ds_era5_var[ds_var]-=273.15
 
 
 # Check if the dimensions differ
@@ -150,9 +150,6 @@ era5_var_bin_means_da = xr.concat(
 era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
     quantile=("quantile", np.arange(0, 1, .05))
 )
-
-
-
 
 # Save the results to a netcdf file
 if decile_var == 'tx':

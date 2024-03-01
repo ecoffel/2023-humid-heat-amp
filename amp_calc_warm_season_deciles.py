@@ -38,8 +38,8 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-file_var = 'tw_max'
-ds_var = 'tw'
+file_var = 'tasmax'
+ds_var = 'mx2t'
 
 year = int(sys.argv[1])
 

@@ -47,7 +47,7 @@ cmip6_models = ['access-cm2', 'awi-esm-1-1-lr', 'bcc-csm2-mr',
 
 model = sys.argv[1]
 
-tw_on_tw = True
+tw_on_tw = False
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
 dirCMIP6 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/CMIP6'

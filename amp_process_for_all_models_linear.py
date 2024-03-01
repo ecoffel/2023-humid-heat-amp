@@ -11,6 +11,6 @@ cmip6_models = ['access-cm2',
 for model in range(len(cmip6_models)):
     
     print(f'running {model}')
-    os.system(f'ipython amp_calc_cmip6_tx_tw_corr.py {model}')
+    os.system(f'ipython amp_calc_cmip6_data.py {model}')
 
     
