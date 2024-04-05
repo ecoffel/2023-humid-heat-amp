@@ -152,6 +152,8 @@ for y in range(1981, 2100 + 1):
 # Combine all the DataArrays along the 'year' dimension
 correlation_per_year_da = xr.concat(correlation_per_year, dim='year')
 
+sys.exit()
+
 print('saving file...')
 correlation_per_year_da.to_netcdf('tx_tw_corr_1981_2100_ssp245_%s.nc'%model)
 

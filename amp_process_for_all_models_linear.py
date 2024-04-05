@@ -10,7 +10,7 @@ cmip6_models = ['access-cm2',
 
 for model in range(1, len(cmip6_models)):
     
-    print(f'running {model}')
-    os.system(f'ipython amp_calc_cmip6_pr_on_txx.py {model}')
+    print(f'running {cmip6_models[model]}')
+    os.system(f'ipython amp_calc_cmip6_pr_on_txx.py {cmip6_models[model]}')
 
     
