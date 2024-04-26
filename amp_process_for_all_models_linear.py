@@ -8,9 +8,9 @@ cmip6_models = ['access-cm2',
                 'mpi-esm1-2-hr', 'mpi-esm1-2-lr',
                 'mri-esm2-0', 'noresm2-lm', 'taiesm1']
 
-for model in range(1, len(cmip6_models)):
+for model in range(2, len(cmip6_models)):
     
     print(f'running {cmip6_models[model]}')
-    os.system(f'ipython amp_calc_cmip6_pr_on_txx.py {cmip6_models[model]}')
+    os.system(f'ipython amp_calc_cmip6_huss_on_txx.py {cmip6_models[model]}')
 
     
