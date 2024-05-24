@@ -47,7 +47,7 @@ cmip6_models = ['access-cm2', 'awi-esm-1-1-lr', 'bcc-csm2-mr',
 
 model = sys.argv[1]
 
-on_tx = False
+on_tx = True
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
 dirCMIP6 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/CMIP6'
@@ -68,6 +68,7 @@ annual_max_months_da_tw.load();
 annual_max_months_da_tx = annual_max_months_da_tx.rename({'latitude':'lat', 'longitude':'lon'})
 
 print('opening %s'%model)
+
 if on_tx:
     cmip6_tx_hist = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/tasmax/*day*.nc'%(dirCMIP6, model))
     cmip6_tx_hist = cmip6_tx_hist.sel(time=slice('1981', '2015'))
@@ -79,9 +80,7 @@ if on_tx:
     cmip6_tx = cmip6_tx['tasmax']-273.15
     cmip6_tx = cmip6_tx.reindex(lat=cmip6_tx.lat[::-1])
     cmip6_tx.load();
-
 else:
-    
     cmip6_tw_hist = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/tw/*.nc'%(dirCMIP6, model))
     cmip6_tw_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/tw/*.nc'%(dirCMIP6, model))
     cmip6_tw = xr.concat([cmip6_tw_hist, cmip6_tw_fut], dim='time')
@@ -97,68 +96,83 @@ print('regridding...')
 regridder = xe.Regridder(land_sea_mask_binary.rename({'latitude':'lat', 'longitude':'lon'}), regridMesh_global, 'bilinear', reuse_weights=False)
 land_sea_mask_binary_regrid = regridder(land_sea_mask_binary)
 
-regridder = xe.Regridder(cmip6_tx, regridMesh_global, 'bilinear', reuse_weights=False)
 if on_tx:
-    cmip6_temp_regrid = regridder(cmip6_tx)
+    regridder = xe.Regridder(cmip6_tx, regridMesh_global, 'bilinear', reuse_weights=False)
+    cmip6_tx_regrid = regridder(cmip6_tx)
+
     del cmip6_tx
+    
+    cmip6_tx_regrid = cmip6_tx_regrid.where(land_sea_mask_binary_regrid)
+    cmip6_tx_regrid = cmip6_tx_regrid.sel(lat=slice(-60,60))
 else:
-    cmip6_temp_regrid = regridder(cmip6_tw)
+    regridder = xe.Regridder(cmip6_tw, regridMesh_global, 'bilinear', reuse_weights=False)
+    cmip6_tw_regrid = regridder(cmip6_tw)
+
     del cmip6_tw
 
-cmip6_temp_regrid = cmip6_temp_regrid.where(land_sea_mask_binary_regrid)
-cmip6_temp_regrid = cmip6_temp_regrid.sel(lat=slice(-60,60))
+    cmip6_tw_regrid = cmip6_tw_regrid.where(land_sea_mask_binary_regrid)
 
-cmip6_lh_hist = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/hfls/hfls_day_*.nc'%(dirCMIP6, model))
-cmip6_lh_hist = cmip6_lh_hist.sel(time=slice('1981', '2015'))
+    cmip6_tw_regrid = cmip6_tw_regrid.sel(lat=slice(-60,60))
 
-cmip6_lh_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/hfls/hfls_day*.nc'%(dirCMIP6, model))
-cmip6_lh_fut = cmip6_lh_fut.sel(time=slice('2015', '2100'))
 
-cmip6_lh = xr.concat([cmip6_lh_hist, cmip6_lh_fut], dim='time')
+cmip6_huss_hist = xr.open_mfdataset('%s/%s/r1i1p1f1/historical/huss/huss_day_*.nc'%(dirCMIP6, model))
+cmip6_huss_hist = cmip6_huss_hist.sel(time=slice('1981', '2015'))
 
-cmip6_lh = cmip6_lh['hfls']
-cmip6_lh = cmip6_lh.reindex(lat=cmip6_lh.lat[::-1])
-cmip6_lh.load();
+cmip6_huss_fut = xr.open_mfdataset('%s/%s/r1i1p1f1/ssp245/huss/huss_day*.nc'%(dirCMIP6, model))
+cmip6_huss_fut = cmip6_huss_fut.sel(time=slice('2015', '2100'))
+
+cmip6_huss = xr.concat([cmip6_huss_hist, cmip6_huss_fut], dim='time')
+
+cmip6_huss = cmip6_huss['huss']
+cmip6_huss = cmip6_huss.reindex(lat=cmip6_huss.lat[::-1])
+cmip6_huss.load();
 
     
 print('regridding...')
 regridder = xe.Regridder(land_sea_mask_binary.rename({'latitude':'lat', 'longitude':'lon'}), regridMesh_global, 'bilinear', reuse_weights=False)
 land_sea_mask_binary_regrid = regridder(land_sea_mask_binary)
 
-regridder = xe.Regridder(cmip6_lh, regridMesh_global, 'bilinear', reuse_weights=False)
-cmip6_lh_regrid = regridder(cmip6_lh)
+regridder = xe.Regridder(cmip6_huss, regridMesh_global, 'bilinear', reuse_weights=False)
+cmip6_huss_regrid = regridder(cmip6_huss)
 
-del cmip6_lh
+del cmip6_huss
 
-cmip6_lh_regrid = cmip6_lh_regrid.where(land_sea_mask_binary_regrid)
+cmip6_huss_regrid = cmip6_huss_regrid.where(land_sea_mask_binary_regrid)
 
-cmip6_lh_regrid = cmip6_lh_regrid.sel(lat=slice(-60,60))
+cmip6_huss_regrid = cmip6_huss_regrid.sel(lat=slice(-60,60))
 
 
 regridder = xe.Regridder(annual_max_months_da_tx, regridMesh_global, 'bilinear', reuse_weights=False)
 annual_max_months_da_tx_regrid = regridder(annual_max_months_da_tx)
+
+regridder = xe.Regridder(annual_max_months_da_tw, regridMesh_global, 'bilinear', reuse_weights=False)
 annual_max_months_da_tw_regrid = regridder(annual_max_months_da_tw)
 
 print('creating warm season mask')
 # First create a boolean mask
-mask = xr.full_like(cmip6_temp_regrid.time, False, dtype=bool)
+mask = xr.full_like(cmip6_huss_regrid.time, False, dtype=bool)
 
 # Iterate over the years
 for y in annual_max_months_da_tx_regrid.year:
     # Find the month of max temperature in this year
     if on_tx:
         month_of_max_tx = annual_max_months_da_tx_regrid.sel(year=y)
-        mask = mask | (cmip6_temp_regrid.time.dt.month == month_of_max_tx)
+        mask = mask | (cmip6_tx_regrid.time.dt.month == month_of_max_tx)# | (cmip6_tx_regrid.time.dt.month == month_of_max_tw)
     else:
         month_of_max_tw = annual_max_months_da_tw_regrid .sel(year=y)
-        mask = mask | (cmip6_temp_regrid.time.dt.month == month_of_max_tw)
+        mask = mask | (cmip6_tw_regrid.time.dt.month == month_of_max_tw)
+
+    # Set True in the mask for all days of this month in this year
     
 
 # Apply the mask to select temperature data for the months of interest
-cmip6_temp_regrid = cmip6_temp_regrid.where(mask, drop=True)
+if on_tx:
+    cmip6_temp_regrid = cmip6_tx_regrid.where(mask, drop=True)
+else:
+    cmip6_temp_regrid = cmip6_tw_regrid.where(mask, drop=True)
 
 # Initialize an empty list to store the tw values corresponding to the highest tx days for each year
-val_on_max_days = []
+val_on_warm_season = []
 
 
 # For each year, find the day with the highest tx and then get the corresponding tw value
@@ -166,36 +180,24 @@ for year in np.unique(cmip6_temp_regrid.time.dt.year.values):
     print(year)
     temp_yearly = cmip6_temp_regrid.sel(time=str(year))
 
-    # Get the time index of the day with the maximum tx value
-    day_of_max = temp_yearly.idxmax(dim="time")
-    
-    # Get the tw value on that day
-    val_on_max_day = np.full([day_of_max.lat.size, day_of_max.lon.size], np.nan)
-    
-    for x in range(day_of_max.lat.size):
-        for y in range(day_of_max.lon.size):
-            if ~pd.isnull(day_of_max[x,y]):
-                val_on_max_day[x,y] = cmip6_lh_regrid[:,x,y].sel(time=day_of_max[x,y])
-                
-    
+
     # Convert the numpy array to a DataArray
-    val_on_max_day = xr.DataArray(
-        val_on_max_day,
+    cur_val_on_warm_season = xr.DataArray(
+        temp_yearly.mean(dim='time'),
         coords=[temp_yearly.lat, temp_yearly.lon],
         dims=["lat", "lon"]
     )
     
-    val_on_max_days.append(val_on_max_day)
+    val_on_warm_season.append(cur_val_on_warm_season)
 
 # Combine the tw values into a single DataArray
-val_on_max_days_da = xr.concat(val_on_max_days, dim="time")
-
+val_on_warm_season_da = xr.concat(val_on_warm_season, dim="time")
 
 # Save the results to a netcdf file
 # if decile_var == 'tx':
 if on_tx:
-    output_file = f"output/cmip6/lh_on_txx_1981_2100_ssp245_{model}.nc"
+    output_file = f"output/cmip6/huss_on_tx_warm_season_1981_2100_ssp245_{model}.nc"
 else:
-    output_file = f"output/cmip6/lh_on_tww_1981_2100_ssp245_{model}.nc"
+    output_file = f"output/cmip6/huss_on_tw_warm_season_1981_2100_ssp245_{model}.nc"
 
-val_on_max_days_da.to_netcdf(output_file)
+val_on_warm_season_da.to_netcdf(output_file)

@@ -38,7 +38,7 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-decile_var = 'tx'
+decile_var = 'tw'
 
 ds_var = 'e'
 file_var = 'evaporation'
@@ -82,6 +82,7 @@ if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperat
     ds_era5_var = ds_era5_var.rename({'lat':'latitude', 'lon':'longitude'})
 
 
+
 # First create a boolean mask
 mask = xr.full_like(ds_temperature.time, False, dtype=bool)
 
@@ -99,12 +100,46 @@ if decile_var == 'tx':
 elif decile_var == 'tw':
     temperature_months_of_interest = ds_temperature['tw'].where(mask, drop=True)
     
-era5_var_months_of_interest = ds_era5_var[ds_var].where(mask, drop=True).mean(dim='time')
+era5_var_months_of_interest = ds_era5_var[ds_var].where(mask, drop=True)
+
+# Initialize an empty list to store the tw values corresponding to the highest tx days for each year
+val_on_max_days = []
+
+# For each year, find the day with the highest tx and then get the corresponding tw value
+
+# Get the time index of the day with the maximum tx value
+#     if tw_on_tx:
+day_of_max = temperature_months_of_interest.idxmax(dim="time")
+#     else:
+#         day_of_max = tw_yearly.idxmax(dim="time")
+
+# Get the tw value on that day
+val_on_max_day = np.full([day_of_max.latitude.size, day_of_max.longitude.size], np.nan)
+
+for x in range(day_of_max.latitude.size):
+    for y in range(day_of_max.longitude.size):
+        if ~pd.isnull(day_of_max[x,y]):
+            val_on_max_day[x,y] = era5_var_months_of_interest[:,x,y].sel(time=day_of_max[x,y])
+
+
+# Convert the numpy array to a DataArray
+val_on_max_day = xr.DataArray(
+    val_on_max_day,
+    coords=[era5_var_months_of_interest.latitude, era5_var_months_of_interest.longitude],
+    dims=["latitude", "longitude"]
+)
+
+val_on_max_days.append(val_on_max_day)
+
+# Combine the tw values into a single DataArray
+val_on_max_days_da = xr.concat(val_on_max_days, dim="time")
+
+
 
 
 # Save the results to a netcdf file
 if decile_var == 'tx':
-    output_file = f"output/{file_var}_on_tx/{file_var}_on_tx_warm_season_{year}.nc"
+    output_file = f"output/{file_var}_on_tx/{file_var}_on_txx_{year}.nc"
 elif decile_var == 'tw':
-    output_file = f"output/{file_var}_on_tw/{file_var}_on_tw_warm_season_{year}.nc"
-era5_var_months_of_interest.to_netcdf(output_file)
+    output_file = f"output/{file_var}_on_tw/{file_var}_on_tww_{year}.nc"
+val_on_max_days_da.to_netcdf(output_file)

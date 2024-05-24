@@ -16,7 +16,7 @@ import datetime
 import geopy.distance
 import xarray as xr
 import pandas as pd
-import rasterio
+import rasterio 
 import geopandas as gpd
 import shapely.geometry
 import shapely.ops
@@ -38,10 +38,10 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-decile_var = 'tx'
+decile_var = 'tw'
 
-ds_var = 'tw'
-file_var = 'tw_max'
+ds_var = 'q'
+file_var = 'huss'
 year = int(sys.argv[1])
 
 dirEra5 = '/home/edcoffel/drive/MAX-Filer/Research/Climate-02/Data-02-edcoffel-F20/ERA5'
@@ -59,15 +59,14 @@ if decile_var == 'tx':
 elif decile_var == 'tw':
     file_path = '%s/daily/tw_max_%d.nc'%(dirEra5, year)
 ds_temperature = xr.open_dataset(file_path)
-
+# ds_temperature['mx2t'] -= 273.15
 
 # Load the soil moisture dataset for the specified year
 era5_var_file_path = '%s/daily/%s_%d.nc'%(dirEra5, file_var, year)
 ds_era5_var = xr.open_dataset(era5_var_file_path)
-ds_era5_var[ds_var]-=273.15
 
 
-# Check if the dimensions differ
+#Check if the dimensions differ
 if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperature.latitude.size != ds_era5_var.latitude.size):
 
     ds_temperature = ds_temperature.rename({'latitude':'lat', 'longitude':'lon'})
@@ -82,25 +81,6 @@ if (ds_temperature.longitude.size != ds_era5_var.longitude.size) or (ds_temperat
     
     ds_temperature = ds_temperature.rename({'lat':'latitude', 'lon':'longitude'})
     ds_era5_var = ds_era5_var.rename({'lat':'latitude', 'lon':'longitude'})
-
-
-    
-# Find the months when the annual max temperature has historically occurred for each grid cell
-# months_of_interest = annual_max_months_da.sel(year=year)
-
-# # Select the daily temperature and soil moisture data for those months
-# if decile_var == 'tx':
-#     temperature_months_of_interest = ds_temperature['mx2t'].where(
-#         ds_temperature.time.dt.month.isin(months_of_interest), drop=True
-#     )
-# elif decile_var == 'tw':
-#     temperature_months_of_interest = ds_temperature['tw'].where(
-#         ds_temperature.time.dt.month.isin(months_of_interest), drop=True
-#     )
-# era5_var_months_of_interest = ds_era5_var[ds_var].where(
-#     ds_era5_var.time.dt.month.isin(months_of_interest), drop=True
-# )
-
 
 
 
@@ -150,6 +130,7 @@ era5_var_bin_means_da = xr.concat(
 era5_var_bin_means_da = era5_var_bin_means_da.assign_coords(
     quantile=("quantile", np.arange(0, 1, .05))
 )
+
 
 # Save the results to a netcdf file
 if decile_var == 'tx':
