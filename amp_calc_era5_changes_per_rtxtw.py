@@ -34,9 +34,8 @@ import xgrid_utils
 import pickle
 
 era5_tx_on_tx_full = xr.open_dataset('intermediate/tx_on_tx_full.nc')
-
 era5_tw_on_tx_full = xr.open_dataset('intermediate/tw_on_tx_full.nc')
-era5_tw_on_tx_full['tw'][-1,:,:,:] += 273.15
+# era5_tw_on_tx_full['tw'][-1,:,:,:] += 273.15
 
 era5_tw_on_tw_full = xr.open_dataset('intermediate/tw_on_tw_full.nc')
 era5_tx_on_tw_full = xr.open_dataset('intermediate/tx_on_tw_full.nc')
@@ -45,15 +44,36 @@ era5_huss_on_tww_full = xr.open_dataset('intermediate/huss_on_tww.nc')
 era5_tx_tw_corr_full = xr.open_dataset('intermediate/tx_tw_corr.nc')
 
 era5_huss_on_txx_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_huss_on_txx_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
 era5_huss_on_tww_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_huss_on_tww_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
 
 era5_tw_on_txx_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tw_on_txx_per_rtet_int = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tw_on_txx_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+
+era5_tw_on_txx_minus_tw_on_tww_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tw_on_txx_minus_tw_on_tww_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+
 era5_tw_on_tww_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tw_on_tww_per_rtet_int = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tw_on_tww_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+
 era5_tx_on_tww_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tx_on_tww_per_rtet_int = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tx_on_tww_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+
+era5_tx_on_tww_minus_tx_on_txx_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tx_on_tww_minus_tx_on_txx_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+
 era5_tx_on_txx_per_rtet = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tx_on_txx_per_rtet_int = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
+era5_tx_on_txx_per_rtet_r2 = np.full([era5_huss_on_txx_full.latitude.size, era5_huss_on_txx_full.longitude.size], np.nan)
 
 for xlat in range(era5_huss_on_txx_full.latitude.size):
-    if xlat%50==0:print(xlat)
+    if xlat%25==0 and xlat > 10:
+        print(xlat)
+        
     for ylon in range(era5_huss_on_txx_full.longitude.size):
         
         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
@@ -69,6 +89,7 @@ for xlat in range(era5_huss_on_txx_full.latitude.size):
             mdl = sm.OLS(v2[nn], X).fit()
 
             era5_huss_on_txx_per_rtet[xlat, ylon] = mdl.params[1]
+            era5_huss_on_txx_per_rtet_r2[xlat, ylon] = mdl.rsquared
             
         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
         v2 = era5_huss_on_tww_full.huss_on_tww[:, xlat, ylon]
@@ -83,81 +104,162 @@ for xlat in range(era5_huss_on_txx_full.latitude.size):
             mdl = sm.OLS(v2[nn], X).fit()
 
             era5_huss_on_tww_per_rtet[xlat, ylon] = mdl.params[1]
+            era5_huss_on_tww_per_rtet_r2[xlat, ylon] = mdl.rsquared
 
 
-        v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
-        v2 = era5_tx_on_tx_full.mx2t[:, 0, xlat, ylon]
+#         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
+#         v2 = era5_tx_on_tx_full.tx_on_txx[:, xlat, ylon]
         
-        nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+#         nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
         
-        if nn.size > 20:
-            v1 = signal.detrend(v1[nn])
-            v2 = signal.detrend(v2[nn])
+#         if nn.size > 20:
+#             v1 = signal.detrend(v1[nn])
+#             v2 = signal.detrend(v2[nn])
 
-            X = sm.add_constant(v1[nn])
-            mdl = sm.OLS(v2[nn], X).fit()
+#             X = sm.add_constant(v1[nn])
+#             mdl = sm.OLS(v2[nn], X).fit()
 
-            era5_tx_on_txx_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tx_on_txx_per_rtet_int[xlat, ylon] = mdl.params[0]
+#             era5_tx_on_txx_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tx_on_txx_per_rtet_r2[xlat, ylon] = mdl.rsquared
 
 
         
-        v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
-        v2 = era5_tw_on_tx_full.tw[:, 0, xlat, ylon]
+#         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
+#         v2 = era5_tw_on_tx_full.tw_on_txx[:, xlat, ylon]
         
-        nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+#         nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
         
-        if nn.size > 20:
-            v1 = signal.detrend(v1[nn])
-            v2 = signal.detrend(v2[nn])
+#         if nn.size > 20:
+#             v1 = signal.detrend(v1[nn])
+#             v2 = signal.detrend(v2[nn])
 
-            X = sm.add_constant(v1[nn])
-            mdl = sm.OLS(v2[nn], X).fit()
+#             X = sm.add_constant(v1[nn])
+#             mdl = sm.OLS(v2[nn], X).fit()
 
-            era5_tw_on_txx_per_rtet[xlat, ylon] = mdl.params[1]
-
-
-        v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
-        v2 = era5_tw_on_tw_full.tw[:, 0, xlat, ylon]
+#             era5_tw_on_txx_per_rtet_int[xlat, ylon] = mdl.params[0]
+#             era5_tw_on_txx_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tw_on_txx_per_rtet_r2[xlat, ylon] = mdl.rsquared
+            
+            
+            
+            
+#         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
+#         v2 = era5_tw_on_tx_full.tw_on_txx[:, xlat, ylon] - era5_tw_on_tw_full.tw_on_tww[:, xlat, ylon]
         
-        nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+#         nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
         
-        if nn.size > 20:
-            v1 = signal.detrend(v1[nn])
-            v2 = signal.detrend(v2[nn])
+#         if nn.size > 20:
+#             v1 = signal.detrend(v1[nn])
+#             v2 = signal.detrend(v2[nn])
 
-            X = sm.add_constant(v1[nn])
-            mdl = sm.OLS(v2[nn], X).fit()
+#             X = sm.add_constant(v1[nn])
+#             mdl = sm.OLS(v2[nn], X).fit()
 
-            era5_tw_on_tww_per_rtet[xlat, ylon] = mdl.params[1]
-
-
-        v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
-        v2 = era5_tx_on_tw_full.mx2t[:, 0, xlat, ylon]
+#             era5_tw_on_txx_minus_tw_on_tww_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tw_on_txx_minus_tw_on_tww_per_rtet_r2[xlat, ylon] = mdl.rsquared
+            
+            
+            
+            
         
-        nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+
+
+#         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
+#         v2 = era5_tw_on_tw_full.tw_on_tww[:, xlat, ylon]
         
-        if nn.size > 20:
-            v1 = signal.detrend(v1[nn])
-            v2 = signal.detrend(v2[nn])
+#         nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+        
+#         if nn.size > 20:
+#             v1 = signal.detrend(v1[nn])
+#             v2 = signal.detrend(v2[nn])
 
-            X = sm.add_constant(v1[nn])
-            mdl = sm.OLS(v2[nn], X).fit()
+#             X = sm.add_constant(v1[nn])
+#             mdl = sm.OLS(v2[nn], X).fit()
 
-            era5_tx_on_tww_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tw_on_tww_per_rtet_int[xlat, ylon] = mdl.params[0]
+#             era5_tw_on_tww_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tw_on_tww_per_rtet_r2[xlat, ylon] = mdl.rsquared
+
+
+#         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
+#         v2 = era5_tx_on_tw_full.tx_on_tww[:, xlat, ylon]
+        
+#         nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+        
+#         if nn.size > 20:
+#             v1 = signal.detrend(v1[nn])
+#             v2 = signal.detrend(v2[nn])
+
+#             X = sm.add_constant(v1[nn])
+#             mdl = sm.OLS(v2[nn], X).fit()
+
+#             era5_tx_on_tww_per_rtet_int[xlat, ylon] = mdl.params[0]
+#             era5_tx_on_tww_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tx_on_tww_per_rtet_r2[xlat, ylon] = mdl.rsquared
+            
+            
+            
+#         v1 = era5_tx_tw_corr_full.tx_tw_corr[:,xlat,ylon]
+#         v2 = era5_tx_on_tw_full.mx2t[:, 0, xlat, ylon] - era5_tx_on_tx_full.mx2t[:, 0, xlat, ylon]
+        
+#         nn = np.where((~np.isnan(v1)) & (~np.isnan(v2)))[0]
+        
+#         if nn.size > 20:
+#             v1 = signal.detrend(v1[nn])
+#             v2 = signal.detrend(v2[nn])
+
+#             X = sm.add_constant(v1[nn])
+#             mdl = sm.OLS(v2[nn], X).fit()
+
+#             era5_tx_on_tww_minus_tx_on_txx_per_rtet[xlat, ylon] = mdl.params[1]
+#             era5_tx_on_tww_minus_tx_on_txx_per_rtet_r2[xlat, ylon] = mdl.rsquared
 
 
 
 with open('era5_huss_on_txx_per_rtet.dat', 'wb') as f:
     pickle.dump(era5_huss_on_txx_per_rtet, f)
+with open('era5_huss_on_txx_per_rtet_r2.dat', 'wb') as f:
+    pickle.dump(era5_huss_on_txx_per_rtet_r2, f)    
 with open('era5_huss_on_tww_per_rtet.dat', 'wb') as f:
     pickle.dump(era5_huss_on_tww_per_rtet, f)
+with open('era5_huss_on_tww_per_rtet_r2.dat', 'wb') as f:
+    pickle.dump(era5_huss_on_tww_per_rtet_r2, f)    
 
-with open('era5_tx_on_txx_per_rtet.dat', 'wb') as f:
-    pickle.dump(era5_tx_on_txx_per_rtet, f)
-with open('era5_tw_on_txx_per_rtet.dat', 'wb') as f:
-    pickle.dump(era5_tw_on_txx_per_rtet, f)
+# with open('era5_tx_on_txx_per_rtet_int.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_txx_per_rtet_int, f)
+# with open('era5_tx_on_txx_per_rtet.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_txx_per_rtet, f)
+# with open('era5_tx_on_txx_per_rtet_r2.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_txx_per_rtet_r2, f)
+    
+# with open('era5_tw_on_txx_per_rtet_int.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_txx_per_rtet_int, f)
+# with open('era5_tw_on_txx_per_rtet.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_txx_per_rtet, f)
+# with open('era5_tw_on_txx_per_rtet_r2.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_txx_per_rtet_r2, f)    
+    
+# with open('era5_tx_on_tww_minus_tx_on_txx_per_rtet.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_tww_minus_tx_on_txx_per_rtet, f)
+# with open('era5_tx_on_tww_minus_tx_on_txx_per_rtet_r2.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_tww_minus_tx_on_txx_per_rtet_r2, f)    
 
-with open('era5_tw_on_tww_per_rtet.dat', 'wb') as f:
-    pickle.dump(era5_tw_on_tww_per_rtet, f)
-with open('era5_tx_on_tww_per_rtet.dat', 'wb') as f:
-    pickle.dump(era5_tx_on_tww_per_rtet, f)
+# with open('era5_tw_on_tww_per_rtet_int.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_tww_per_rtet_int, f)
+# with open('era5_tw_on_tww_per_rtet.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_tww_per_rtet, f)
+# with open('era5_tw_on_tww_per_rtet_r2.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_tww_per_rtet_r2, f)    
+
+# with open('era5_tx_on_tww_per_rtet_int.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_tww_per_rtet_int, f)
+# with open('era5_tx_on_tww_per_rtet.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_tww_per_rtet, f)
+# with open('era5_tx_on_tww_per_rtet_r2.dat', 'wb') as f:
+#     pickle.dump(era5_tx_on_tww_per_rtet_r2, f)    
+
+# with open('era5_tw_on_txx_minus_tw_on_tww_per_rtet.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_txx_minus_tw_on_tww_per_rtet, f)
+# with open('era5_tw_on_txx_minus_tw_on_tww_per_rtet_r2.dat', 'wb') as f:
+#     pickle.dump(era5_tw_on_txx_minus_tw_on_tww_per_rtet_r2, f)    
