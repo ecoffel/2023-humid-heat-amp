@@ -8,9 +8,8 @@ cmip6_models = ['access-cm2',
                 'mpi-esm1-2-hr', 'mpi-esm1-2-lr',
                 'mri-esm2-0', 'noresm2-lm', 'taiesm1']
 
-for model in range(1, len(cmip6_models)):
-    
+for model in range(0, len(cmip6_models)):
     print(f'running {cmip6_models[model]}')
-    os.system(f'screen -d -m ipython amp_calc_cmip6_lh_on_tx_season.py {cmip6_models[model]}')
+    os.system(f'screen -d -m ipython amp_calc_cmip6_n_days_above_temp_pct.py {cmip6_models[model]}')
 
     

@@ -38,7 +38,7 @@ from dask.distributed import Client, progress
 import warnings
 warnings.filterwarnings('ignore')
 
-decile_var = 'tx'
+decile_var = 'tw'
 
 ds_var = 'vpd'
 file_var = 'vpd_daily_mean'
